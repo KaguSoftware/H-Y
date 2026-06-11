@@ -854,9 +854,16 @@ function Cooler({ prog }: { prog: Prog }) {
     });
   });
 
-  const label = (i: number, side: 1 | -1, y = 0.3) => (
+  // labels hug the stack on mobile so they never run off-screen
+  const { size } = useThree();
+  const narrow = size.width < size.height;
+  const label = (i: number, side: 1 | -1, y = 0.3) => {
+    // the outermost layers hug the screen edges on mobile — point their
+    // labels inward so they stay on screen
+    const s: 1 | -1 = narrow ? (i === 0 ? -1 : i === 3 ? 1 : side) : side;
+    return (
     <Html
-      position={[side * 1.5, y, 0]}
+      position={[s * (narrow ? 0.8 : 1.5), narrow ? y + 0.55 : y, 0]}
       center
       style={{ pointerEvents: "none" }}
       zIndexRange={[5, 0]}
@@ -865,16 +872,21 @@ function Cooler({ prog }: { prog: Prog }) {
         ref={(el) => {
           labelRefs.current[i] = el;
         }}
-        className="flex items-center gap-2 opacity-0 whitespace-nowrap"
-        style={{ flexDirection: side === 1 ? "row" : "row-reverse" }}
+        className="flex items-center gap-1.5 opacity-0 whitespace-nowrap md:gap-2"
+        style={{ flexDirection: s === 1 ? "row" : "row-reverse" }}
       >
-        <span className="block h-px w-10 bg-white/30" />
-        <span className="font-mono text-[10px] tracking-[0.25em] text-white/60">
+        <span className={`block h-px bg-white/30 ${narrow ? "w-3" : "w-10"}`} />
+        <span
+          className={`font-mono tracking-[0.2em] text-white/60 md:tracking-[0.25em] ${
+            narrow ? "text-[8px]" : "text-[10px]"
+          }`}
+        >
           {LAYER_LABELS[i]}
         </span>
       </div>
     </Html>
-  );
+    );
+  };
 
   return (
     <group ref={group}>
@@ -1263,19 +1275,26 @@ function ProgressSmoother({ prog }: { prog: Prog }) {
 }
 
 function CameraRig({ prog }: { prog: Prog }) {
-  const { camera, pointer } = useThree();
+  const { camera, pointer, size } = useThree();
   useFrame(() => {
     const p = prog.s;
     const e = smooth(span(p, PH.open)) * (1 - smooth(span(p, PH.close)));
+    // on narrow (portrait/mobile) screens, back the camera off so the
+    // product never spills out of frame
+    const aspect = size.width / size.height;
+    const portrait = aspect < 1 ? (1 - aspect) * 7.2 : 0;
     const tx = Math.sin(p * Math.PI * 2) * 0.35 + pointer.x * 0.25;
     const ty = 0.12 + Math.cos(p * Math.PI) * 0.18 + pointer.y * 0.15;
     // pull BACK for the exploded view (the stack spreads wide), then push
     // in for the final composition
-    const tz = 6.3 - p * 0.5 + e * 1.1 - smooth(span(p, [0.88, 0.97])) * 1.5;
+    const tz =
+      6.3 + portrait - p * 0.5 + e * 2.1 - smooth(span(p, [0.88, 0.97])) * 1.5;
     camera.position.x += (tx - camera.position.x) * 0.06;
     camera.position.y += (ty - camera.position.y) * 0.06;
     camera.position.z += (tz - camera.position.z) * 0.06;
-    camera.lookAt(0, 0, 0);
+    // on mobile, aim slightly right of centre while exploded so the stack
+    // sits a touch further left in frame
+    camera.lookAt(aspect < 1 ? e * 0.22 : 0, 0, 0);
   });
   return null;
 }
@@ -1525,7 +1544,7 @@ export default function CoolingSequenceHero() {
         <div
           ref={tempBadge}
           data-state="hot"
-          className="group absolute right-[7vw] top-24 w-44 rounded-2xl border border-white/10 bg-white/4 p-4 backdrop-blur-md"
+          className="group absolute right-5 top-20 w-32 rounded-xl border border-white/10 bg-white/4 p-3 backdrop-blur-md md:right-[7vw] md:top-24 md:w-44 md:rounded-2xl md:p-4"
         >
           <div className="flex items-baseline justify-between">
             <span className="font-mono text-[9px] tracking-[0.28em] text-white/45">
@@ -1536,9 +1555,9 @@ export default function CoolingSequenceHero() {
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-current group-data-[state=hot]:text-[#ff4d1f] group-data-[state=cool]:text-[#5fd4ff]" />
             </span>
           </div>
-          <div className="mt-2 text-3xl font-semibold tracking-tight tabular-nums">
+          <div className="mt-1.5 text-xl font-semibold tracking-tight tabular-nums md:mt-2 md:text-3xl">
             <span ref={tempValue}>42</span>
-            <span className="text-lg text-white/50">°C</span>
+            <span className="text-sm text-white/50 md:text-lg">°C</span>
           </div>
           <div className="mt-3 h-px w-full overflow-hidden rounded bg-white/10">
             <div
@@ -1559,7 +1578,7 @@ export default function CoolingSequenceHero() {
             ref={(el) => {
               copyRefs.current[i] = el;
             }}
-            className={`invisible absolute bottom-[12vh] flex max-w-xl flex-col gap-4 opacity-0 ${alignClass[c.align]}`}
+            className={`invisible absolute bottom-[5vh] flex w-[88vw] max-w-xl flex-col gap-3 opacity-0 md:bottom-[12vh] md:gap-4 ${alignClass[c.align]}`}
           >
             <span className="font-mono text-[10px] tracking-[0.34em] text-[#5fd4ff]/80">
               {c.kicker}
@@ -1567,7 +1586,7 @@ export default function CoolingSequenceHero() {
             <h2 className="text-balance text-4xl font-semibold leading-[1.05] tracking-tight md:text-6xl">
               {c.title}
             </h2>
-            <p className="max-w-md text-pretty text-base leading-relaxed text-white/55 md:text-lg">
+            <p className="max-w-[82vw] text-pretty text-base leading-relaxed text-white/55 md:max-w-md md:text-lg">
               {c.sub}
             </p>
           </div>
@@ -1576,7 +1595,7 @@ export default function CoolingSequenceHero() {
         {/* finale + CTAs */}
         <div
           ref={finale}
-          className="invisible absolute bottom-[10vh] left-1/2 flex w-full max-w-2xl -translate-x-1/2 flex-col items-center gap-6 px-6 text-center opacity-0"
+          className="invisible absolute bottom-[5vh] left-1/2 flex w-full max-w-2xl -translate-x-1/2 flex-col items-center gap-4 px-6 text-center opacity-0 md:bottom-[10vh] md:gap-6"
         >
           <span className="font-mono text-[10px] tracking-[0.34em] text-[#5fd4ff]/80">
             06 — IN CONTROL
