@@ -79,7 +79,10 @@ const outBack = (t: number) => {
   return 1 + (c + 1) * u * u * u + c * u * u;
 };
 
-type Prog = { p: number };
+// p: raw scroll progress (written by ScrollTrigger)
+// s: exponentially smoothed progress — everything in the 3D scene reads
+//    this so discrete scroll-wheel steps never cause visible jumps
+type Prog = { p: number; s: number };
 
 /* ════════════════════════════════════════════════════════════════════════════
    PHONE — procedural modern flagship, staged from a 3/4 back angle.
@@ -278,7 +281,7 @@ function Phone({ prog }: { prog: Prog }) {
   }, []);
 
   useFrame(({ clock }) => {
-    const p = prog.p;
+    const p = prog.s;
     const t = clock.elapsedTime;
     const g = group.current;
 
@@ -606,7 +609,7 @@ function AirFlow({ prog }: { prog: Prog }) {
   );
 
   useFrame(({ clock }) => {
-    const p = prog.p;
+    const p = prog.s;
     // exploded view only: appear with the cyan cooling flow, vanish as the
     // layers close back up
     const e = smooth(span(p, PH.open)) * (1 - smooth(span(p, PH.close)));
@@ -787,7 +790,7 @@ function Cooler({ prog }: { prog: Prog }) {
   ];
 
   useFrame(({ clock }, dt) => {
-    const p = prog.p;
+    const p = prog.s;
     const t = clock.elapsedTime;
     const g = group.current;
 
@@ -802,11 +805,13 @@ function Cooler({ prog }: { prog: Prog }) {
     });
 
     // entrance from the right, tilt while exploded, settle for attach
-    const attach = span(p, PH.attach);
     const snap = outBack(smooth(span(p, [0.9, 0.97])));
+    // drift forward smoothly at the end of step 5, then snap back onto the
+    // phone — no discontinuity at the phase boundary
+    const lead = smooth(span(p, [0.85, 0.9]));
     g.position.x = (1 - enter) * 8;
     g.position.y = Math.sin(t * 0.8) * 0.05;
-    g.position.z = attach > 0 ? 0.9 - snap * 0.55 : 0;
+    g.position.z = lead * 0.9 - snap * 0.55;
     // stronger Y twist while exploded so the stack spreads across the screen
     g.rotation.y = (1 - enter) * -1.4 + e * 0.85;
     g.rotation.x = e * 0.12;
@@ -1074,10 +1079,13 @@ function HeatEmbers({ prog }: { prog: Prog }) {
   useFrame(({ clock, gl }) => {
     uniforms.uTime.value = clock.elapsedTime;
     uniforms.uPixelRatio.value = gl.getPixelRatio();
-    // only alive while the hot phone is on stage
-    const intensity = 1 - smooth(span(prog.p, [0.16, 0.26]));
+    // only alive while the hot phone is on stage — wide window so they
+    // breathe out gradually instead of popping off
+    const intensity = 1 - smooth(span(prog.s, [0.13, 0.32]));
     uniforms.uIntensity.value = intensity;
     points.current.visible = intensity > 0.002;
+    // drift with the phone as it exits (same eased path → stays smooth)
+    points.current.position.x = -smooth(span(prog.s, [0.18, 0.27])) * 8;
   });
 
   return (
@@ -1168,7 +1176,7 @@ function FlowParticles({ prog }: { prog: Prog }) {
   );
 
   useFrame(({ clock, gl }) => {
-    const p = prog.p;
+    const p = prog.s;
     uniforms.uTime.value = clock.elapsedTime;
     uniforms.uPixelRatio.value = gl.getPixelRatio();
     // visible only during the transfer chapter
@@ -1223,7 +1231,7 @@ function StageGlow({ prog }: { prog: Prog }) {
   const col = useMemo(() => new THREE.Color(), []);
 
   useFrame(() => {
-    const p = prog.p;
+    const p = prog.s;
     // ambience drifts from ember red to ice cyan across the sequence
     const mix = smooth(span(p, [0.45, 0.8]));
     col.copy(EMBER).lerp(ICE_DEEP, mix);
@@ -1244,10 +1252,20 @@ function StageGlow({ prog }: { prog: Prog }) {
   );
 }
 
+/** Eases the raw scroll progress every frame — kills scroll-step jumpiness. */
+function ProgressSmoother({ prog }: { prog: Prog }) {
+  useFrame((_, dt) => {
+    const k = 1 - Math.exp(-dt * 7); // framerate-independent smoothing
+    prog.s += (prog.p - prog.s) * k;
+    if (Math.abs(prog.p - prog.s) < 0.0004) prog.s = prog.p;
+  });
+  return null;
+}
+
 function CameraRig({ prog }: { prog: Prog }) {
   const { camera, pointer } = useThree();
   useFrame(() => {
-    const p = prog.p;
+    const p = prog.s;
     const e = smooth(span(p, PH.open)) * (1 - smooth(span(p, PH.close)));
     const tx = Math.sin(p * Math.PI * 2) * 0.35 + pointer.x * 0.25;
     const ty = 0.12 + Math.cos(p * Math.PI) * 0.18 + pointer.y * 0.15;
@@ -1266,7 +1284,7 @@ function Lights({ prog }: { prog: Prog }) {
   const warm = useRef<THREE.SpotLight>(null!);
   const cold = useRef<THREE.SpotLight>(null!);
   useFrame(() => {
-    const p = prog.p;
+    const p = prog.s;
     const coolMix = smooth(span(p, [0.5, 0.85]));
     warm.current.intensity = 90 * (1 - coolMix * 0.85);
     cold.current.intensity = 50 + coolMix * 140;
@@ -1306,6 +1324,7 @@ function Scene({ prog }: { prog: Prog }) {
     <>
       <color attach="background" args={["#06070a"]} />
       <fog attach="fog" args={["#06070a", 8.5, 16]} />
+      <ProgressSmoother prog={prog} />
       <Lights prog={prog} />
       <StageGlow prog={prog} />
       <Phone prog={prog} />
@@ -1378,7 +1397,7 @@ export default function CoolingSequenceHero() {
   const scrollHint = useRef<HTMLDivElement>(null!);
   const railFill = useRef<HTMLDivElement>(null!);
 
-  const prog = useRef<Prog>({ p: 0 }).current;
+  const prog = useRef<Prog>({ p: 0, s: 0 }).current;
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -1407,7 +1426,7 @@ export default function CoolingSequenceHero() {
           trigger: section.current,
           start: "top top",
           end: "+=400%",
-          scrub: 0.9,
+          scrub: 1.2,
           pin: true,
           anticipatePin: 1,
           onUpdate: (self) => {
