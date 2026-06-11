@@ -49,6 +49,11 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
+// mobile browsers resize the viewport when the URL bar collapses mid-scroll;
+// without this, ScrollTrigger refreshes and the pin jumps
+if (typeof window !== "undefined") {
+  ScrollTrigger.config({ ignoreMobileResize: true });
+}
 
 /* ── palette ─────────────────────────────────────────────────────────────── */
 const EMBER = new THREE.Color("#ff4d1f");
@@ -1503,7 +1508,7 @@ export default function CoolingSequenceHero() {
   return (
     <section
       ref={section}
-      className="relative h-screen w-full overflow-hidden bg-[#06070a] text-white"
+      className="relative h-svh w-full overflow-hidden bg-[#06070a] text-white"
       aria-label="The Cooling Sequence — product story"
     >
       {/* ── Three.js stage ─────────────────────────────────────────────── */}
@@ -1578,7 +1583,7 @@ export default function CoolingSequenceHero() {
             ref={(el) => {
               copyRefs.current[i] = el;
             }}
-            className={`invisible absolute bottom-[5vh] flex w-[88vw] max-w-xl flex-col gap-3 opacity-0 md:bottom-[12vh] md:gap-4 ${alignClass[c.align]}`}
+            className={`invisible absolute bottom-[calc(env(safe-area-inset-bottom,0)+clamp(1rem,5svh,5rem))] flex w-[88vw] max-w-xl flex-col gap-3 opacity-0 md:bottom-[clamp(3rem,12vh,9rem)] md:gap-4 ${alignClass[c.align]}`}
           >
             <span className="font-mono text-[10px] tracking-[0.34em] text-[#5fd4ff]/80">
               {c.kicker}
@@ -1595,7 +1600,7 @@ export default function CoolingSequenceHero() {
         {/* finale + CTAs */}
         <div
           ref={finale}
-          className="invisible absolute bottom-[5vh] left-1/2 flex w-full max-w-2xl -translate-x-1/2 flex-col items-center gap-4 px-6 text-center opacity-0 md:bottom-[10vh] md:gap-6"
+          className="invisible absolute bottom-[calc(env(safe-area-inset-bottom,0)+clamp(1rem,5svh,5rem))] left-1/2 flex w-full max-w-2xl -translate-x-1/2 flex-col items-center gap-4 px-6 text-center opacity-0 md:bottom-[clamp(2.5rem,10vh,8rem)] md:gap-6"
         >
           <span className="font-mono text-[10px] tracking-[0.34em] text-[#5fd4ff]/80">
             06 — IN CONTROL
@@ -1635,7 +1640,7 @@ export default function CoolingSequenceHero() {
         {/* scroll hint */}
         <div
           ref={scrollHint}
-          className="absolute bottom-6 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2"
+          className="absolute bottom-[max(1.5rem,env(safe-area-inset-bottom,0px))] left-1/2 flex -translate-x-1/2 flex-col items-center gap-2"
         >
           <span className="font-mono text-[9px] tracking-[0.4em] text-white/35">
             SCROLL
