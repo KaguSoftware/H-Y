@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 
 /**
@@ -158,7 +157,7 @@ export default function Home() {
       </header>
 
       {/* ── hero: the problem is warm, the promise is cold ─────────────────── */}
-      <section className="relative mx-auto grid min-h-[92svh] w-full max-w-6xl items-center gap-12 px-6 pb-16 pt-32 lg:grid-cols-[1.1fr_0.9fr]">
+      <section className="relative mx-auto flex min-h-[92svh] w-full max-w-6xl flex-col justify-center px-6 pb-16 pt-32">
         {/* ember glow bleeding in from the top, ice waiting below */}
         <div
           aria-hidden
@@ -169,14 +168,14 @@ export default function Home() {
           className="pointer-events-none absolute -bottom-24 right-0 h-[420px] w-[560px] rounded-full bg-[#5fd4ff]/[0.06] blur-3xl"
         />
 
-        <div className="relative">
+        <div className="relative max-w-3xl">
           <p className="rise font-mono text-[10px] tracking-[0.34em] text-[#5fd4ff]/80">
             H&amp;Y · THERMAL ENGINEERING
           </p>
-          <h1 className="rise rise-2 mt-6 text-balance text-5xl font-semibold leading-[1.04] tracking-tight md:text-7xl">
+          <h1 className="rise rise-2 mt-6 text-balance text-6xl font-semibold leading-[1.02] tracking-tight md:text-8xl">
             Cold is a technology.
           </h1>
-          <p className="rise rise-3 mt-7 max-w-xl text-pretty text-lg leading-relaxed text-white/55">
+          <p className="rise rise-3 mt-8 max-w-xl text-pretty text-lg leading-relaxed text-white/55">
             Modern phones throttle the moment they run hot. The H&amp;Y cooler
             pumps heat out through a semiconductor stack whose contact plate
             reaches minus six degrees Celsius, so your phone keeps its peak.
@@ -197,23 +196,11 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="rise rise-3 relative hidden lg:block">
-          <div
-            aria-hidden
-            className="absolute inset-0 -z-10 rounded-full bg-[#5fd4ff]/[0.05] blur-2xl"
-          />
-          <Image
-            src="/phone_cooler_overview_transparent.png"
-            alt="The H&Y mobile phone cooler with its USB-C cable and silicone pads, beside the black, blue, and red colorways"
-            width={2556}
-            height={1179}
-            priority
-            className="w-full"
-          />
-          <p className="mt-4 text-right font-mono text-[10px] tracking-[0.28em] text-white/40">
-            CONTACT PLATE <span className="text-[#5fd4ff]">-6 °C</span>
-          </p>
-        </div>
+        <p className="rise rise-4 relative mt-20 font-mono text-[10px] tracking-[0.28em] text-white/40">
+          CONTACT PLATE <span className="text-[#5fd4ff]">-6 °C</span>
+          <span className="mx-3 text-white/20">/</span>
+          145 G <span className="mx-3 text-white/20">/</span> USB-C
+        </p>
       </section>
 
       {/* ── 01 · the problem ───────────────────────────────────────────────── */}
@@ -277,16 +264,12 @@ export default function Home() {
         <h2 className="mt-5 max-w-2xl text-4xl font-semibold tracking-tight md:text-5xl">
           Four layers, one direction.
         </h2>
+        <p className="mt-6 max-w-xl text-pretty leading-relaxed text-white/55">
+          Heat only ever travels one way through the cooler: off the phone,
+          into the copper, across the junction, and out through the fins.
+        </p>
 
-        <Image
-          src="/phone_cooler_exploded_transparent.png"
-          alt="Exploded view of the cooler: copper sheet, semiconductor element, fan assembly, and the X-frame front cover"
-          width={1536}
-          height={709}
-          className="mx-auto mt-14 w-full max-w-4xl"
-        />
-
-        <div className="mt-12 grid gap-x-16 lg:grid-cols-2">
+        <div className="mt-14 grid gap-x-16 lg:grid-cols-2">
           {STACK.map(({ n, name, body }) => (
             <div key={n} className="flex gap-6 border-t border-white/10 py-7">
               <span className="font-mono text-[11px] leading-7 text-[#5fd4ff]/70">{n}</span>
